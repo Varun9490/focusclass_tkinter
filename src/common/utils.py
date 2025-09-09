@@ -614,35 +614,62 @@ class AsyncTkinterHelper:
         self.root = root
         self.loop = None
         self.running = False
+        self.thread = None
+        self._cleanup_scheduled = False
     
     def start_async_loop(self):
         """Start async event loop in a separate thread"""
         import threading
         
         def run_loop():
-            self.loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(self.loop)
-            self.loop.run_forever()
+            try:
+                self.loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(self.loop)
+                self.running = True
+                self.loop.run_forever()
+            except Exception as e:
+                logging.getLogger(__name__).error(f"Error in async loop: {e}")
+            finally:
+                self.running = False
         
-        thread = threading.Thread(target=run_loop, daemon=True)
-        thread.start()
-        self.running = True
+        self.thread = threading.Thread(target=run_loop, daemon=True)
+        self.thread.start()
         
         # Schedule periodic check for async tasks
-        self.root.after(100, self._check_async_tasks)
+        if not self._cleanup_scheduled:
+            self._cleanup_scheduled = True
+            self.root.after(100, self._check_async_tasks)
     
     def _check_async_tasks(self):
         """Check for completed async tasks"""
-        if self.running:
-            self.root.after(100, self._check_async_tasks)
+        if self.running and self._cleanup_scheduled:
+            try:
+                self.root.after(100, self._check_async_tasks)
+            except tk.TclError:
+                # Widget has been destroyed, stop checking
+                self._cleanup_scheduled = False
     
     def run_async(self, coro):
         """Run async coroutine"""
         if self.loop and self.running:
-            asyncio.run_coroutine_threadsafe(coro, self.loop)
+            try:
+                asyncio.run_coroutine_threadsafe(coro, self.loop)
+            except Exception as e:
+                logging.getLogger(__name__).error(f"Error running async coroutine: {e}")
     
     def stop(self):
         """Stop async loop"""
         self.running = False
+        self._cleanup_scheduled = False
+        
         if self.loop:
-            self.loop.call_soon_threadsafe(self.loop.stop)
+            try:
+                self.loop.call_soon_threadsafe(self.loop.stop)
+            except Exception:
+                pass  # Loop might already be stopped
+        
+        if self.thread and self.thread.is_alive():
+            try:
+                self.thread.join(timeout=1.0)
+            except Exception:
+                pass  # Thread cleanup failed

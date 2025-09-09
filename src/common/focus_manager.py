@@ -495,6 +495,8 @@ class FocusManager:
                         
                 except (psutil.NoSuchProcess, psutil.AccessDenied):
                     continue
+        except Exception as e:
+            self.logger.error(f"Error checking browser violations: {e}")
     
     def _check_unauthorized_processes(self):
         """Check for unauthorized processes"""

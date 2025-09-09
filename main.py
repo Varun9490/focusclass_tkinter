@@ -220,8 +220,11 @@ class FocusClassLauncher:
                     teacher_root.destroy()
                 except:
                     pass
-                if self.is_running:
+                # Destroy launcher window
+                try:
                     self.root.destroy()
+                except:
+                    pass
             
         except Exception as e:
             self.logger.error(f"Error launching teacher app: {e}")
@@ -265,8 +268,11 @@ class FocusClassLauncher:
                     student_root.destroy()
                 except:
                     pass
-                if self.is_running:
+                # Destroy launcher window
+                try:
                     self.root.destroy()
+                except:
+                    pass
             
         except Exception as e:
             self.logger.error(f"Error launching student app: {e}")

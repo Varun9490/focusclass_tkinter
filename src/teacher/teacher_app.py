@@ -284,7 +284,11 @@ class TeacherApp:
         """Reset UI to initial state"""
         self.session_code_var.set("Not Started")
         self.session_password_var.set("")
-        self.qr_label.configure(image="", text="QR Code")
+        
+        # Reset QR code
+        self.qr_label.configure(image="", text="QR Code\n(Start session to generate)")
+        if hasattr(self.qr_label, 'image'):
+            delattr(self.qr_label, 'image')  # Remove image reference
         
         self.start_btn.configure(state=tk.NORMAL)
         self.screen_btn.configure(state=tk.DISABLED, text="📺 Start Screen Sharing")
@@ -292,8 +296,10 @@ class TeacherApp:
         self.end_btn.configure(state=tk.DISABLED)
         
         self.students_listbox.delete(0, tk.END)
+        self.activities_text.config(state=tk.NORMAL)
         self.activities_text.delete(1.0, tk.END)
-        self.status_var.set("Ready")
+        self.activities_text.config(state=tk.DISABLED)
+        self.status_var.set("Ready - Start a session to begin")
     
     def start_screen_sharing(self):
         """Start screen sharing"""
@@ -491,13 +497,29 @@ Activity Log:
         except Exception as e:
             self.logger.error(f"Export error: {e}")
             show_error_message("Export Error", f"Failed to export data: {e}")
+    
+    def run(self):
+        """Run the teacher application"""
+        try:
+            self.root.mainloop()
+        except Exception as e:
+            self.logger.error(f"Error in teacher app main loop: {e}")
+        finally:
+            # Clean shutdown
+            if self.async_helper:
+                self.async_helper.stop()
 
 
 def main():
-    """Main entry point"""
-    root = tk.Tk()
-    app = TeacherApp(root)
-    app.run()
+    """Main entry point for teacher application"""
+    try:
+        root = tk.Tk()
+        app = TeacherApp(root)
+        app.run()
+    except Exception as e:
+        print(f"Error starting teacher application: {e}")
+        import traceback
+        traceback.print_exc()
 
 
 if __name__ == "__main__":

@@ -1,1 +1,29 @@
 2025-09-10 00:22:18,301 - src.common.utils - INFO - FocusClass Launcher initialized
+2025-09-10 00:38:03,082 - src.common.utils - INFO - Starting FocusClass Tkinter Launcher
+2025-09-10 00:38:03,454 - src.common.utils - INFO - Dependency check passed
+2025-09-10 00:38:03,926 - src.common.utils - INFO - FocusClass Launcher initialized successfully
+2025-09-10 00:38:14,617 - src.common.utils - INFO - Launching teacher application...
+2025-09-10 00:38:14,933 - common.screen_capture - INFO - Detected 1 monitors
+2025-09-10 00:38:14,933 - common.screen_capture - INFO - Monitor 0: 1600x900 at (0, 0)
+2025-09-10 00:38:14,996 - common.utils - INFO - Teacher application initialized
+2025-09-10 00:38:15,032 - src.common.utils - ERROR - Error launching teacher app: 'TeacherApp' object has no attribute 'run'
+2025-09-10 00:38:20,506 - src.common.utils - INFO - Launching student application...
+2025-09-10 00:38:20,522 - src.common.utils - ERROR - Error launching student app: expected 'except' or 'finally' block (focus_manager.py, line 499)
+2025-09-10 00:38:23,255 - src.common.utils - INFO - FocusClass Launcher shutting down
+2025-09-10 00:38:23,279 - src.common.utils - INFO - FocusClass Launcher shutdown complete
+2025-09-10 00:41:45,141 - src.common.utils - INFO - Starting FocusClass Tkinter Launcher
+2025-09-10 00:41:45,500 - src.common.utils - INFO - Dependency check passed
+2025-09-10 00:41:45,962 - src.common.utils - INFO - FocusClass Launcher initialized successfully
+2025-09-10 00:41:50,782 - src.common.utils - INFO - Launching teacher application...
+2025-09-10 00:41:51,063 - common.screen_capture - INFO - Detected 1 monitors
+2025-09-10 00:41:51,063 - common.screen_capture - INFO - Monitor 0: 1600x900 at (0, 0)
+2025-09-10 00:41:51,115 - common.utils - INFO - Teacher application initialized
+2025-09-10 00:41:53,511 - common.database_manager - INFO - Database initialized successfully
+2025-09-10 00:41:53,511 - common.database_manager - INFO - Created session HHJ1PK62YEY with ID 1
+2025-09-10 00:41:53,521 - websockets.server - INFO - server listening on 0.0.0.0:8765
+2025-09-10 00:41:53,521 - common.network_manager - INFO - WebSocket server started on 0.0.0.0:8765
+2025-09-10 00:41:53,521 - common.network_manager - INFO - HTTP server started on 0.0.0.0:8080
+2025-09-10 00:41:53,521 - common.network_manager - WARNING - Zeroconf not available. Network discovery disabled.
+2025-09-10 00:41:53,521 - common.network_manager - INFO - Teacher server started: {'session_code': 'HHJ1PK62YEY', 'password': 'rqRHPwisGicB3gUH', 'ip': '172.168.20.113', 'websocket_port': 8765, 'http_port': 8080, 'discovery_name': 'FocusClass-HHJ1PK62YEY'}
+2025-09-10 00:41:53,521 - common.utils - INFO - Session started: HHJ1PK62YEY
+2025-09-10 00:41:53,579 - common.utils - ERROR - Failed to generate QR code: image "pyimage1" doesn't exist
