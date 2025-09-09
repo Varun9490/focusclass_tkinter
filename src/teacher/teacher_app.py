@@ -506,8 +506,11 @@ Activity Log:
             self.logger.error(f"Error in teacher app main loop: {e}")
         finally:
             # Clean shutdown
-            if self.async_helper:
-                self.async_helper.stop()
+            try:
+                if hasattr(self, 'async_helper') and self.async_helper:
+                    self.async_helper.stop()
+            except Exception as cleanup_error:
+                self.logger.error(f"Error during cleanup: {cleanup_error}")
 
 
 def main():
