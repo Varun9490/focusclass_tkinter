@@ -33,9 +33,9 @@ class TeacherApp:
         self.root = root
         self.logger = setup_logging("INFO", "logs/teacher.log")
         
-        # Initialize async helper
+        # Initialize async helper first
         self.async_helper = AsyncTkinterHelper(root)
-        self.async_helper.start_async_loop()
+        self.async_tasks = set()  # Track async tasks for cleanup
         
         # Initialize components
         self.db_manager = DatabaseManager()
@@ -205,6 +205,11 @@ class TeacherApp:
         copy_btn = tk.Button(code_frame, text="📋", command=self.copy_session_code,
                             bg=TKINTER_THEME["accent_color"], fg="white", width=3)
         copy_btn.pack(side=tk.RIGHT)
+        
+        # Copy all details button
+        copy_all_btn = tk.Button(code_frame, text="📄", command=self.copy_all_session_details,
+                                bg=TKINTER_THEME["success_color"], fg="white", width=3)
+        copy_all_btn.pack(side=tk.RIGHT, padx=(5, 0))
         
         # Password with show/hide
         pass_frame = tk.Frame(info_frame, bg=TKINTER_THEME["bg_color"])
@@ -522,6 +527,48 @@ class TeacherApp:
         except Exception as e:
             self.logger.error(f"Error copying session code: {e}")
     
+    def copy_all_session_details(self):
+        """Copy all session details to clipboard"""
+        try:
+            session_code = self.session_code_var.get()
+            password = self.session_password_var.get()
+            teacher_ip = self.teacher_ip_var.get()
+            
+            if session_code and session_code != "Not Started":
+                # Get current port information
+                ws_port = getattr(self.network_manager, 'websocket_port', 8765)
+                http_port = getattr(self.network_manager, 'http_port', 8080)
+                
+                details = f"""FocusClass Session Details
+=============================
+Session Code: {session_code}
+Password: {password}
+Teacher IP: {teacher_ip}
+WebSocket Port: {ws_port}
+HTTP Port: {http_port}
+
+Instructions for Students:
+1. Open FocusClass Student Application
+2. Enter your name
+3. Enter Teacher IP: {teacher_ip}
+4. Enter Session Code: {session_code}
+5. Enter Password: {password}
+6. Click Connect
+
+Alternatively, scan the QR code from the teacher dashboard."""
+                
+                self.root.clipboard_clear()
+                self.root.clipboard_append(details)
+                self.root.update()  # Required for clipboard to work
+                
+                show_info_message("Copied", "All session details copied to clipboard!\nYou can now share this with students.")
+                self._add_activity_log("Session details copied to clipboard", "info")
+            else:
+                show_error_message("Error", "No active session to copy")
+        except Exception as e:
+            self.logger.error(f"Error copying session details: {e}")
+            show_error_message("Error", f"Failed to copy session details: {e}")
+    
     def toggle_password_visibility(self):
         """Toggle password visibility"""
         try:
@@ -780,6 +827,7 @@ class TeacherApp:
                 if error_message:
                     self.root.after(0, lambda msg=error_message: show_error_message("Error", f"Failed to start session: {msg}"))
         
+        # Use thread for async task to avoid blocking UI
         threading.Thread(target=run_async_task, daemon=True).start()
     
     async def _start_session_async(self):
@@ -819,8 +867,8 @@ class TeacherApp:
             
             self.teacher_ip_var.set(teacher_ip)
             
-            # Generate QR code on main thread with delay
-            self.root.after(100, lambda: self._generate_qr_code(teacher_ip, session_code, password))
+            # Generate QR code on main thread with proper error handling
+            self.root.after(200, lambda: self._safe_generate_qr_code(teacher_ip, session_code, password))
             
             # Update buttons
             self.start_btn.configure(state=tk.DISABLED, text="✅ Session Active")
@@ -846,10 +894,58 @@ class TeacherApp:
             self.logger.error(f"Error updating session UI: {e}")
             show_error_message("UI Error", f"Failed to update interface: {e}")
     
+    def _safe_generate_qr_code(self, teacher_ip: str, session_code: str, password: str):
+        """Safely generate QR code with better error handling"""
+        try:
+            # Check if QR label still exists and is valid
+            if not hasattr(self, 'qr_label'):
+                self.logger.warning("QR label not found, skipping QR generation")
+                return
+            
+            try:
+                # Test if the widget still exists
+                self.qr_label.winfo_exists()
+            except tk.TclError:
+                self.logger.warning("QR label widget no longer exists")
+                return
+            
+            # Generate QR code
+            try:
+                qr_data = {
+                    "type": "focusclass_session", 
+                    "teacher_ip": teacher_ip, 
+                    "session_code": session_code, 
+                    "password": password
+                }
+                
+                qr_image = create_qr_code(qr_data, size=150)
+                
+                # Create PhotoImage in a try-catch
+                try:
+                    qr_photo = ImageTk.PhotoImage(qr_image)
+                    self.qr_label.configure(image=qr_photo, text="")
+                    self.qr_label.image = qr_photo  # Keep reference
+                    self.logger.info("QR code generated successfully")
+                except Exception as photo_error:
+                    self.logger.error(f"Error creating PhotoImage: {photo_error}")
+                    raise photo_error
+                    
+            except Exception as qr_error:
+                self.logger.error(f"Error generating QR code: {qr_error}")
+                self._set_qr_fallback_text(session_code, teacher_ip, password)
+                
+        except Exception as e:
+            self.logger.error(f"Error in safe QR generation: {e}")
+            # Set fallback text as last resort
+            try:
+                self._set_qr_fallback_text(session_code, teacher_ip, password)
+            except:
+                pass  # Complete failure, give up
+    
     def _generate_qr_code(self, teacher_ip: str, session_code: str, password: str):
         """Generate QR code safely on main thread"""
         try:
-            # Ensure we're on the main thread
+            # Ensure we're on the main thread and QR label exists
             if not hasattr(self, 'qr_label') or not self.qr_label.winfo_exists():
                 self.logger.warning("QR label not ready, skipping QR generation")
                 return
@@ -873,7 +969,7 @@ class TeacherApp:
                 self.qr_label.configure(image=qr_photo, text="")
                 self.qr_label.image = qr_photo  # Keep reference to prevent garbage collection
                 self.logger.info("QR code generated successfully")
-            except tk.TclError as e:
+            except (tk.TclError, AttributeError) as e:
                 self.logger.error(f"Tkinter error updating QR label: {e}")
                 self._set_qr_fallback_text(session_code, teacher_ip, password)
             
@@ -1281,15 +1377,36 @@ Activity Log:
     def cleanup(self):
         """Clean up resources"""
         try:
+            # Cancel all pending async tasks
+            if hasattr(self, 'async_tasks'):
+                for task in self.async_tasks.copy():
+                    if not task.done():
+                        task.cancel()
+                self.async_tasks.clear()
+            
+            # Stop screen sharing
             if hasattr(self, 'session_active') and self.session_active:
-                # Quick cleanup without async
                 self.session_active = False
                 if hasattr(self, 'screen_capture') and self.screen_sharing_active:
                     self.screen_capture.stop_capture()
             
+            # Clean up async helper
+            if hasattr(self, 'async_helper'):
+                try:
+                    self.async_helper.stop_async_loop()
+                except:
+                    pass  # Ignore cleanup errors
+            
             self.logger.info("Teacher application cleanup completed")
         except Exception as e:
             self.logger.error(f"Error during cleanup: {e}")
+    
+    def _track_async_task(self, coro):
+        """Create and track an async task"""
+        task = asyncio.create_task(coro)
+        self.async_tasks.add(task)
+        task.add_done_callback(self.async_tasks.discard)
+        return task
 
 
 def main():

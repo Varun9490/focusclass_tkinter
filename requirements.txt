@@ -1,29 +1,23 @@
-# FocusClass Tkinter Edition - Python Dependencies
-
-# Core dependencies
-websockets>=10.0
+# FocusClass Tkinter Requirements
+# Core networking
+websockets>=13.0
 aiohttp>=3.8.0
 aiosqlite>=0.17.0
 
-# Screen capture and image processing
-mss>=6.1.0
+# Screen capture and imaging
+mss>=10.0.0
 Pillow>=9.0.0
 
 # System monitoring
 psutil>=5.8.0
 
 # QR code generation
-qrcode[pil]>=7.3.0
+qrcode>=7.3.0
 
-# Windows-specific dependencies (for focus mode)
-pywin32>=304; sys_platform == "win32"
+# Windows-specific (automatically skipped on other platforms)
+pywin32>=300; sys_platform == "win32"
 
-# Optional dependencies for enhanced features
-# aiortc>=1.4.0  # Uncomment for WebRTC screen sharing
-# zeroconf>=0.39.0  # Uncomment for network discovery
-# cv2  # Uncomment for advanced image processing
-
-# Development dependencies (optional)
-# pytest>=7.0.0
-# black>=22.0.0
-# flake8>=4.0.0
+# Optional but recommended
+# zeroconf>=0.39.0  # For network discovery
+# aiortc>=1.5.0     # For advanced WebRTC features
+# pyautogui>=0.9.54 # For enhanced automation

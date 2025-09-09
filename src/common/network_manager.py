@@ -437,23 +437,43 @@ class NetworkManager:
             raise ValueError("This method is only for student instances")
         
         try:
-            # First, authenticate via HTTP API
-            join_url = f"http://{teacher_ip}:{self.http_port}/api/join"
+            # Try different HTTP ports in case of conflicts
+            http_ports = [8080, 8081, 8082, 8083, 8084, 8085]
+            ws_ports = [8765, 8766, 8767, 8768, 8769, 8770]
             
-            async with aiohttp.ClientSession() as session:
-                async with session.post(join_url, json={
-                    "student_name": student_name,
-                    "password": password,
-                    "session_code": session_code
-                }) as response:
-                    if response.status != 200:
-                        result = await response.json()
-                        self.logger.error(f"Join request failed: {result.get('error')}")
-                        return False
+            connected = False
+            
+            for http_port, ws_port in zip(http_ports, ws_ports):
+                try:
+                    # First, authenticate via HTTP API
+                    join_url = f"http://{teacher_ip}:{http_port}/api/join"
+                    
+                    async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=5)) as session:
+                        async with session.post(join_url, json={
+                            "student_name": student_name,
+                            "password": password,
+                            "session_code": session_code
+                        }) as response:
+                            if response.status == 200:
+                                self.http_port = http_port
+                                self.websocket_port = ws_port
+                                connected = True
+                                break
+                            else:
+                                result = await response.json()
+                                self.logger.debug(f"Port {http_port} failed: {result.get('error')}")
+                                
+                except Exception as port_error:
+                    self.logger.debug(f"Port {http_port} failed: {port_error}")
+                    continue
+            
+            if not connected:
+                self.logger.error("Failed to authenticate with teacher on any port")
+                return False
             
             # Connect via WebSocket
             ws_url = f"ws://{teacher_ip}:{self.websocket_port}"
-            self.websocket_client = await websockets.connect(ws_url)
+            self.websocket_client = await websockets.connect(ws_url, timeout=10)
             
             # Send authentication
             await self.websocket_client.send(json.dumps({
@@ -466,14 +486,33 @@ class NetworkManager:
             }))
             
             # Start message handling
-            asyncio.create_task(self._handle_client_messages())
+            self._client_task = asyncio.create_task(self._handle_client_messages())
             
-            self.logger.info(f"Connected to teacher at {teacher_ip}")
+            self.logger.info(f"Connected to teacher at {teacher_ip}:{self.websocket_port}")
             return True
             
         except Exception as e:
             self.logger.error(f"Failed to connect to teacher: {e}")
             return False
+    
+    async def disconnect_client(self):
+        """Disconnect client from teacher"""
+        try:
+            if hasattr(self, '_client_task') and self._client_task:
+                self._client_task.cancel()
+                try:
+                    await self._client_task
+                except asyncio.CancelledError:
+                    pass
+            
+            if self.websocket_client:
+                await self.websocket_client.close()
+                self.websocket_client = None
+            
+            self.logger.info("Disconnected from teacher")
+            
+        except Exception as e:
+            self.logger.error(f"Error disconnecting from teacher: {e}")
     
     async def _handle_client_messages(self):
         """Handle incoming messages from teacher (student side)"""
@@ -490,6 +529,8 @@ class NetworkManager:
             self.logger.info("Connection to teacher closed")
             if "disconnection" in self.connection_handlers:
                 await self.connection_handlers["disconnection"]("teacher")
+        except asyncio.CancelledError:
+            self.logger.info("Client message handling cancelled")
         except Exception as e:
             self.logger.error(f"Client message handling error: {e}")
     

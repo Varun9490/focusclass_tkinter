@@ -21,7 +21,7 @@ from common.screen_capture import StudentScreenShare
 from common.focus_manager import FocusManager, LightweightFocusManager, is_admin
 from common.utils import (
     setup_logging, parse_qr_code_data, format_duration, AsyncTkinterHelper, 
-    center_window, show_error_message, ask_yes_no
+    center_window, show_error_message, show_info_message, ask_yes_no
 )
 from common.config import *
 
@@ -54,6 +54,7 @@ class StudentApp:
         # Setup UI and handlers
         self.setup_ui()
         self.setup_network_handlers()
+        self.setup_key_monitoring()
         self.start_monitoring()
         
         self.logger.info("Student application initialized")
@@ -157,6 +158,35 @@ class StudentApp:
                                       font=(TKINTER_THEME["font_family"], 11, "bold"))
         activity_group.grid(row=2, column=0, sticky="nsew")
         
+        # Create presentation view (initially hidden)
+        self.presentation_frame = tk.Frame(main_frame, bg="black")
+        self.presentation_frame.grid(row=2, column=0, sticky="nsew")
+        self.presentation_frame.grid_remove()  # Hide initially
+        
+        # Presentation display
+        self.presentation_label = tk.Label(self.presentation_frame, 
+                                          bg="black", 
+                                          fg="white",
+                                          text="Waiting for teacher's presentation...\n\nTeacher will share their screen when ready.",
+                                          font=("Arial", 14),
+                                          justify=tk.CENTER)
+        self.presentation_label.pack(expand=True, fill=tk.BOTH)
+        
+        # Presentation controls
+        pres_controls = tk.Frame(self.presentation_frame, bg="black")
+        pres_controls.pack(side=tk.BOTTOM, fill=tk.X, padx=10, pady=5)
+        
+        # Exit presentation button
+        self.exit_pres_btn = tk.Button(pres_controls, text="📋 View Activity Log", 
+                                      command=self.toggle_presentation_view,
+                                      bg=TKINTER_THEME["accent_color"], fg="white")
+        self.exit_pres_btn.pack(side=tk.LEFT)
+        
+        # Presentation status
+        self.pres_status_var = tk.StringVar(value="No presentation active")
+        tk.Label(pres_controls, textvariable=self.pres_status_var, 
+                bg="black", fg="white", font=("Arial", 10)).pack(side=tk.RIGHT)
+        
         self.activity_text = scrolledtext.ScrolledText(activity_group, height=15, 
                                                       bg="white", 
                                                       fg=TKINTER_THEME["fg_color"],
@@ -173,12 +203,109 @@ class StudentApp:
         
         center_window(self.root, 900, 700)
     
+    def toggle_presentation_view(self):
+        """Toggle between presentation view and activity log"""
+        try:
+            if self.presentation_frame.winfo_viewable():
+                # Switch to activity log
+                self.presentation_frame.grid_remove()
+                self.activity_text.master.grid()
+                self.exit_pres_btn.configure(text="📺 View Presentation")
+            else:
+                # Switch to presentation
+                self.activity_text.master.grid_remove()
+                self.presentation_frame.grid()
+                self.exit_pres_btn.configure(text="📋 View Activity Log")
+        except Exception as e:
+            self.logger.error(f"Error toggling presentation view: {e}")
+    
+    def handle_screen_share_data(self, frame_data):
+        """Handle incoming screen share data from teacher"""
+        try:
+            # Show presentation view if not already visible
+            if not self.presentation_frame.winfo_viewable():
+                self.toggle_presentation_view()
+            
+            # Update presentation status
+            self.pres_status_var.set("Receiving teacher's screen")
+            
+            # If we have actual image data, display it
+            if frame_data and isinstance(frame_data, bytes):
+                try:
+                    from PIL import Image, ImageTk
+                    import io
+                    
+                    # Convert bytes to image
+                    image = Image.open(io.BytesIO(frame_data))
+                    
+                    # Resize to fit display
+                    display_size = (800, 600)
+                    image.thumbnail(display_size, Image.Resampling.LANCZOS)
+                    
+                    # Convert to PhotoImage
+                    photo = ImageTk.PhotoImage(image)
+                    
+                    # Update display
+                    self.presentation_label.configure(image=photo, text="")
+                    self.presentation_label.image = photo  # Keep reference
+                    
+                except Exception as img_error:
+                    self.logger.error(f"Error displaying screen share: {img_error}")
+                    self.presentation_label.configure(
+                        image="", 
+                        text="Error displaying teacher's screen\n\nTechnical details available in activity log"
+                    )
+            else:
+                # Show text message
+                self.presentation_label.configure(
+                    image="", 
+                    text="Teacher's presentation is active\n\nWaiting for screen data..."
+                )
+                
+        except Exception as e:
+            self.logger.error(f"Error handling screen share data: {e}")
+            
     def setup_network_handlers(self):
         """Setup network message handlers"""
         self.network_manager.register_message_handler("auth_success", self.handle_auth_success)
         self.network_manager.register_message_handler("enable_focus_mode", self.handle_enable_focus_mode)
         self.network_manager.register_message_handler("disable_focus_mode", self.handle_disable_focus_mode)
+        self.network_manager.register_message_handler("screen_share_data", self.handle_screen_share_message)
+        self.network_manager.register_message_handler("teacher_message", self.handle_teacher_message)
         self.network_manager.register_connection_handler("disconnection", self.handle_disconnection)
+    
+    async def handle_screen_share_message(self, client_id: str, data: dict):
+        """Handle screen share message from teacher"""
+        try:
+            if data.get("enabled", False):
+                self.root.after(0, lambda: self.handle_screen_share_data(data.get("frame_data")))
+                self.root.after(0, lambda: self._add_activity_log("📺 Teacher started screen sharing"))
+            else:
+                self.root.after(0, lambda: self.pres_status_var.set("Screen sharing stopped"))
+                self.root.after(0, lambda: self._add_activity_log("📏 Teacher stopped screen sharing"))
+                # Show default message
+                self.root.after(0, lambda: self.presentation_label.configure(
+                    image="", 
+                    text="Teacher stopped screen sharing\n\nWaiting for next presentation..."
+                ))
+        except Exception as e:
+            self.logger.error(f"Error handling screen share message: {e}")
+    
+    async def handle_teacher_message(self, client_id: str, data: dict):
+        """Handle message from teacher"""
+        try:
+            message = data.get("message", "")
+            timestamp = data.get("timestamp", time.time())
+            
+            # Show message in activity log
+            self.root.after(0, lambda: self._add_activity_log(f"💬 Teacher: {message}"))
+            
+            # Show popup if important
+            if "urgent" in message.lower() or "important" in message.lower():
+                self.root.after(0, lambda: show_info_message("Message from Teacher", message))
+                
+        except Exception as e:
+            self.logger.error(f"Error handling teacher message: {e}")
     
     def start_monitoring(self):
         """Start system monitoring"""
@@ -326,11 +453,130 @@ class StudentApp:
                 self.focus_mode_active = True
                 self.root.after(0, lambda: self.focus_mode_var.set("Enabled"))
                 self.root.after(0, lambda: self._add_activity_log("🔒 Focus mode enabled"))
+                
+                # Force fullscreen mode
+                self.root.after(0, self._enter_fullscreen_mode)
+                
+                # Show warning message
+                self.root.after(1000, lambda: show_info_message(
+                    "Focus Mode Enabled", 
+                    "Focus mode is now active!\n\n"
+                    "Restrictions in effect:\n"
+                    "• Fullscreen mode enforced\n"
+                    "• Tab switching blocked\n"
+                    "• Window switching restricted\n"
+                    "• Certain key combinations disabled\n\n"
+                    "Any violation attempts will be reported to the teacher."
+                ))
             else:
                 self.root.after(0, lambda: self._add_activity_log("❌ Failed to enable focus mode"))
                 
         except Exception as e:
             self.logger.error(f"Error enabling focus mode: {e}")
+    
+    def _enter_fullscreen_mode(self):
+        """Force the application into fullscreen mode"""
+        try:
+            # Make window fullscreen
+            self.root.attributes('-fullscreen', True)
+            self.root.attributes('-topmost', True)
+            
+            # Disable window decorations
+            self.root.overrideredirect(True)
+            
+            # Bind escape key to prevent exiting fullscreen
+            self.root.bind('<Escape>', self._prevent_exit_fullscreen)
+            self.root.bind('<F11>', self._prevent_exit_fullscreen)
+            self.root.bind('<Alt-F4>', self._prevent_exit_fullscreen)
+            self.root.bind('<Control-w>', self._prevent_exit_fullscreen)
+            
+            # Focus on the window
+            self.root.focus_force()
+            self.root.grab_set()
+            
+            # Capture initial window state
+            self._last_focus_time = time.time()
+            
+            self._add_activity_log("🔒 Entered fullscreen mode - restrictions active")
+            
+            # Start monitoring for window focus changes
+            self._monitor_window_focus()
+            
+        except Exception as e:
+            self.logger.error(f"Error entering fullscreen mode: {e}")
+    
+    def _monitor_window_focus(self):
+        """Monitor window focus to detect tab/window switches"""
+        try:
+            if self.focus_mode_active:
+                # Check if our window still has focus
+                current_focus = self.root.focus_get()
+                
+                # If we've lost focus, it could indicate tab switching
+                if current_focus is None or not str(current_focus).startswith(str(self.root)):
+                    current_time = time.time()
+                    
+                    # Throttle violation reports (only if more than 2 seconds since last)
+                    if hasattr(self, '_last_focus_time') and current_time - self._last_focus_time > 2.0:
+                        self._last_focus_time = current_time
+                        
+                        # Send violation to teacher
+                        def run_async_task():
+                            try:
+                                loop = asyncio.new_event_loop()
+                                asyncio.set_event_loop(loop)
+                                loop.run_until_complete(self._send_violation(
+                                    "focus_loss_detected", 
+                                    "Student may have switched tabs or windows"
+                                ))
+                            finally:
+                                loop.close()
+                        
+                        threading.Thread(target=run_async_task, daemon=True).start()
+                        self._add_activity_log("⚠️ Focus lost - possible tab/window switch detected")
+                
+                # Force window back to focus
+                try:
+                    self.root.focus_force()
+                    self.root.lift()
+                    self.root.attributes('-topmost', True)
+                except:
+                    pass
+                
+                # Schedule next check
+                self.root.after(1000, self._monitor_window_focus)
+            
+        except Exception as e:
+            self.logger.error(f"Error monitoring window focus: {e}")
+    
+    def _prevent_exit_fullscreen(self, event):
+        """Prevent student from exiting fullscreen"""
+        try:
+            # Send violation to teacher
+            def run_async_task():
+                try:
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                    loop.run_until_complete(self._send_violation(
+                        "fullscreen_exit_attempt", 
+                        f"Student attempted to exit fullscreen using {event.keysym}"
+                    ))
+                finally:
+                    loop.close()
+            
+            threading.Thread(target=run_async_task, daemon=True).start()
+            
+            # Force back to fullscreen
+            self.root.after(10, lambda: self.root.attributes('-fullscreen', True))
+            self.root.after(10, lambda: self.root.attributes('-topmost', True))
+            
+            self._add_activity_log(f"⚠️ Attempted to exit fullscreen using {event.keysym}")
+            
+            # Block the key event
+            return "break"
+            
+        except Exception as e:
+            self.logger.error(f"Error preventing fullscreen exit: {e}")
     
     async def handle_disable_focus_mode(self, client_id: str, data: dict):
         """Handle focus mode disable request"""
@@ -340,8 +586,96 @@ class StudentApp:
             self.root.after(0, lambda: self.focus_mode_var.set("Disabled"))
             self.root.after(0, lambda: self._add_activity_log("🔓 Focus mode disabled"))
             
+            # Exit fullscreen mode
+            self.root.after(0, self._exit_fullscreen_mode)
+            
         except Exception as e:
             self.logger.error(f"Error disabling focus mode: {e}")
+    
+    def _exit_fullscreen_mode(self):
+        """Exit fullscreen mode when focus mode is disabled"""
+        try:
+            # Exit fullscreen
+            self.root.attributes('-fullscreen', False)
+            self.root.attributes('-topmost', False)
+            
+            # Restore window decorations
+            self.root.overrideredirect(False)
+            
+            # Remove key bindings
+            self.root.unbind('<Escape>')
+            self.root.unbind('<F11>')
+            
+            # Release grab
+            self.root.grab_release()
+            
+            # Restore normal window size
+            self.root.geometry("900x700")
+            
+            self._add_activity_log("🔓 Exited fullscreen mode - restrictions lifted")
+            
+        except Exception as e:
+            self.logger.error(f"Error exiting fullscreen mode: {e}")
+    
+    def setup_key_monitoring(self):
+        """Setup key monitoring for additional restrictions"""
+        try:
+            # Bind global key events when focus mode is active
+            self.root.bind_all('<Control-t>', self._handle_restricted_key)
+            self.root.bind_all('<Control-n>', self._handle_restricted_key)
+            self.root.bind_all('<Control-w>', self._handle_restricted_key)
+            self.root.bind_all('<Control-Tab>', self._handle_restricted_key)
+            self.root.bind_all('<Alt-Tab>', self._handle_restricted_key)
+            self.root.bind_all('<Control-l>', self._handle_restricted_key)
+            self.root.bind_all('<F5>', self._handle_restricted_key)
+            
+        except Exception as e:
+            self.logger.error(f"Error setting up key monitoring: {e}")
+    
+    def _handle_restricted_key(self, event):
+        """Handle restricted key combinations"""
+        try:
+            if self.focus_mode_active:
+                # Send violation to teacher
+                key_combination = self._get_key_combination(event)
+                
+                def run_async_task():
+                    try:
+                        loop = asyncio.new_event_loop()
+                        asyncio.set_event_loop(loop)
+                        loop.run_until_complete(self._send_violation(
+                            "restricted_key_attempt", 
+                            f"Student attempted restricted key combination: {key_combination}"
+                        ))
+                    finally:
+                        loop.close()
+                
+                threading.Thread(target=run_async_task, daemon=True).start()
+                
+                self._add_activity_log(f"⚠️ Blocked restricted key: {key_combination}")
+                
+                # Block the key event
+                return "break"
+        except Exception as e:
+            self.logger.error(f"Error handling restricted key: {e}")
+    
+    def _get_key_combination(self, event):
+        """Get readable key combination string"""
+        try:
+            modifiers = []
+            if event.state & 0x4:  # Control
+                modifiers.append("Ctrl")
+            if event.state & 0x8:  # Alt
+                modifiers.append("Alt")
+            if event.state & 0x1:  # Shift
+                modifiers.append("Shift")
+            
+            key = event.keysym
+            if modifiers:
+                return "+".join(modifiers) + "+" + key
+            return key
+        except:
+            return str(event.keysym)
     
     async def handle_focus_violation(self, violation_data: dict):
         """Handle focus mode violation"""

@@ -268,8 +268,12 @@ class FocusManager:
                 win32con.VK_F4 in self.pressed_keys):
                 return True
             
-            # Check for F11 (fullscreen toggle)
+            # Check for F11 (fullscreen toggle) - BLOCK THIS
             if win32con.VK_F11 in self.pressed_keys:
+                return True
+            
+            # Check for Escape key (exit fullscreen)
+            if win32con.VK_ESCAPE in self.pressed_keys:
                 return True
             
             # Check for Ctrl+N (new window)
@@ -286,6 +290,39 @@ class FocusManager:
             if (win32con.VK_CONTROL in self.pressed_keys and 
                 ord('W') in self.pressed_keys):
                 return True
+            
+            # Check for Ctrl+Shift+T (reopen closed tab)
+            if (win32con.VK_CONTROL in self.pressed_keys and 
+                win32con.VK_SHIFT in self.pressed_keys and 
+                ord('T') in self.pressed_keys):
+                return True
+            
+            # Check for Ctrl+L (address bar)
+            if (win32con.VK_CONTROL in self.pressed_keys and 
+                ord('L') in self.pressed_keys):
+                return True
+            
+            # Check for Ctrl+Shift+N (incognito/private window)
+            if (win32con.VK_CONTROL in self.pressed_keys and 
+                win32con.VK_SHIFT in self.pressed_keys and 
+                ord('N') in self.pressed_keys):
+                return True
+            
+            # Check for Ctrl+Tab (switch tabs)
+            if (win32con.VK_CONTROL in self.pressed_keys and 
+                win32con.VK_TAB in self.pressed_keys):
+                return True
+            
+            # Check for Ctrl+Shift+Tab (switch tabs reverse)
+            if (win32con.VK_CONTROL in self.pressed_keys and 
+                win32con.VK_SHIFT in self.pressed_keys and 
+                win32con.VK_TAB in self.pressed_keys):
+                return True
+            
+            # Check for Ctrl+1-9 (switch to tab)
+            for i in range(ord('1'), ord('9') + 1):
+                if (win32con.VK_CONTROL in self.pressed_keys and i in self.pressed_keys):
+                    return True
             
             return False
             
@@ -376,24 +413,38 @@ class FocusManager:
     def _monitor_windows(self):
         """Monitor active windows for violations"""
         try:
+            previous_window = None
+            fullscreen_state = False
+            
             while not self.stop_monitoring.is_set():
                 try:
                     # Get the current foreground window
                     hwnd = win32gui.GetForegroundWindow()
                     window_title = win32gui.GetWindowText(hwnd)
                     
-                    # Check if the current window is allowed
-                    if window_title and not self._is_window_allowed(window_title):
-                        # Try to bring allowed window to front
-                        allowed_hwnd = self._find_allowed_window()
-                        if allowed_hwnd:
-                            win32gui.SetForegroundWindow(allowed_hwnd)
-                            win32gui.ShowWindow(allowed_hwnd, win32con.SW_RESTORE)
+                    # Check if window changed
+                    if hwnd != previous_window:
+                        previous_window = hwnd
                         
-                        self._log_violation("window_switch", f"Attempted to switch to: {window_title}")
+                        # Check if the current window is allowed
+                        if window_title and not self._is_window_allowed(window_title):
+                            # Try to bring allowed window to front
+                            allowed_hwnd = self._find_allowed_window()
+                            if allowed_hwnd:
+                                win32gui.SetForegroundWindow(allowed_hwnd)
+                                win32gui.ShowWindow(allowed_hwnd, win32con.SW_RESTORE)
+                            
+                            self._log_violation("window_switch", f"Attempted to switch to: {window_title}")
                     
-                    # Check for new browser tabs or windows
-                    self._check_browser_violations()
+                    # Check fullscreen state
+                    current_fullscreen = self._is_window_fullscreen(hwnd)
+                    if fullscreen_state and not current_fullscreen:
+                        # Student exited fullscreen
+                        self._log_violation("fullscreen_exit", f"Student exited fullscreen mode in: {window_title}")
+                    fullscreen_state = current_fullscreen
+                    
+                    # Check for browser tab violations
+                    self._check_browser_violations(window_title)
                     
                     # Check for unauthorized processes
                     self._check_unauthorized_processes()
@@ -407,6 +458,23 @@ class FocusManager:
         
         except Exception as e:
             self.logger.error(f"Error in window monitoring: {e}")
+    
+    def _is_window_fullscreen(self, hwnd) -> bool:
+        """Check if a window is in fullscreen mode"""
+        try:
+            rect = win32gui.GetWindowRect(hwnd)
+            screen_width = win32api.GetSystemMetrics(win32con.SM_CXSCREEN)
+            screen_height = win32api.GetSystemMetrics(win32con.SM_CYSCREEN)
+            
+            window_width = rect[2] - rect[0]
+            window_height = rect[3] - rect[1]
+            
+            # Consider fullscreen if window covers most of the screen
+            return (window_width >= screen_width * 0.95 and 
+                   window_height >= screen_height * 0.95 and 
+                   rect[0] <= 10 and rect[1] <= 10)
+        except Exception:
+            return False
     
     def _is_window_allowed(self, window_title: str) -> bool:
         """Check if a window title is in the allowed list"""
@@ -470,31 +538,81 @@ class FocusManager:
         except Exception as e:
             self.logger.error(f"Error focusing allowed window: {e}")
     
-    def _check_browser_violations(self):
-        """Check for browser-based violations (new tabs, etc.)"""
+    def _check_browser_violations(self, current_window_title=""):
+        """Check for browser-based violations (new tabs, tab switches, etc.)"""
         try:
-            # Get all running processes
-            for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
-                try:
-                    proc_name = proc.info['name'].lower()
-                    
-                    # Check for browsers
-                    if any(browser in proc_name for browser in 
-                           ['chrome', 'firefox', 'edge', 'opera', 'safari', 'brave']):
+            # Track browser windows and detect tab changes
+            browser_windows = []
+            
+            def enum_browser_windows(hwnd, windows):
+                window_title = win32gui.GetWindowText(hwnd)
+                if window_title and any(browser in window_title.lower() for browser in 
+                                      ['chrome', 'firefox', 'edge', 'opera', 'safari', 'brave']):
+                    if win32gui.IsWindowVisible(hwnd):
+                        windows.append((hwnd, window_title))
+                return True
+            
+            win32gui.EnumWindows(enum_browser_windows, browser_windows)
+            
+            # Check for multiple browser windows/tabs
+            if len(browser_windows) > 1:
+                self._log_violation("multiple_browser_windows", 
+                                   f"Multiple browser windows/tabs detected: {len(browser_windows)}")
+            
+            # Enhanced tab switching detection
+            if current_window_title:
+                # Detect rapid title changes (indicating tab switches)
+                if hasattr(self, '_last_browser_title'):
+                    if (self._last_browser_title != current_window_title and 
+                        any(browser in current_window_title.lower() for browser in 
+                           ['chrome', 'firefox', 'edge', 'opera', 'safari', 'brave'])):
                         
-                        # Check command line for multiple tabs/windows
-                        cmdline = proc.info.get('cmdline', [])
-                        if cmdline and len(cmdline) > 5:  # Likely multiple tabs
-                            # Count chrome processes (each tab is a process in Chrome)
-                            chrome_count = sum(1 for p in psutil.process_iter(['name']) 
-                                              if 'chrome' in p.info['name'].lower())
+                        # Check if this is a tab switch (different content, same browser)
+                        if any(browser in self._last_browser_title.lower() for browser in 
+                              ['chrome', 'firefox', 'edge', 'opera', 'safari', 'brave']):
+                            self._log_violation("tab_switch", 
+                                              f"Tab switch detected: '{self._last_browser_title}' -> '{current_window_title}'")
+                
+                self._last_browser_title = current_window_title
+            
+            # Enhanced process monitoring for browser tabs
+            try:
+                browser_processes = []
+                for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+                    try:
+                        proc_name = proc.info['name'].lower()
+                        
+                        # Check for browsers
+                        if any(browser in proc_name for browser in 
+                               ['chrome', 'firefox', 'edge', 'opera', 'safari', 'brave']):
+                            browser_processes.append(proc)
                             
-                            if chrome_count > 3:  # More than typical for single tab
-                                self._log_violation("browser_tabs", 
-                                                   f"Multiple browser tabs/windows detected ({chrome_count} processes)")
+                    except (psutil.NoSuchProcess, psutil.AccessDenied):
+                        continue
+                
+                # For Chrome, count renderer processes (each tab)
+                chrome_tabs = sum(1 for proc in browser_processes 
+                                 if 'chrome' in proc.info['name'].lower() and 
+                                 '--type=renderer' in ' '.join(proc.info.get('cmdline', [])))
+                
+                if chrome_tabs > 2:  # Allow 1-2 tabs
+                    self._log_violation("excessive_browser_tabs", 
+                                       f"Too many browser tabs detected: {chrome_tabs} tabs")
+                
+                # Check for private/incognito browsing
+                incognito_detected = any(
+                    '--incognito' in ' '.join(proc.info.get('cmdline', [])) or
+                    '--private' in ' '.join(proc.info.get('cmdline', []))
+                    for proc in browser_processes if proc.info.get('cmdline')
+                )
+                
+                if incognito_detected:
+                    self._log_violation("incognito_browsing", 
+                                       "Private/incognito browsing mode detected")
+                
+            except Exception as e:
+                self.logger.error(f"Error in enhanced browser monitoring: {e}")
                         
-                except (psutil.NoSuchProcess, psutil.AccessDenied):
-                    continue
         except Exception as e:
             self.logger.error(f"Error checking browser violations: {e}")
     
