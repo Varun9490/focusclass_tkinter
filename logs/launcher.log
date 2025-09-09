@@ -27,3 +27,31 @@
 2025-09-10 00:41:53,521 - common.network_manager - INFO - Teacher server started: {'session_code': 'HHJ1PK62YEY', 'password': 'rqRHPwisGicB3gUH', 'ip': '172.168.20.113', 'websocket_port': 8765, 'http_port': 8080, 'discovery_name': 'FocusClass-HHJ1PK62YEY'}
 2025-09-10 00:41:53,521 - common.utils - INFO - Session started: HHJ1PK62YEY
 2025-09-10 00:41:53,579 - common.utils - ERROR - Failed to generate QR code: image "pyimage1" doesn't exist
+2025-09-10 00:42:35,801 - src.common.utils - INFO - Starting FocusClass Tkinter Launcher
+2025-09-10 00:42:36,025 - src.common.utils - INFO - Dependency check passed
+2025-09-10 00:42:36,442 - src.common.utils - INFO - FocusClass Launcher initialized successfully
+2025-09-10 00:42:38,794 - src.common.utils - INFO - Launching student application...
+2025-09-10 00:42:39,191 - common.screen_capture - INFO - Detected 1 monitors
+2025-09-10 00:42:39,191 - common.screen_capture - INFO - Monitor 0: 1600x900 at (0, 0)
+2025-09-10 00:42:39,280 - src.common.utils - ERROR - Error launching student app: cannot use geometry manager pack inside .!frame which already has slaves managed by grid
+2025-09-10 00:42:39,290 - src.common.utils - INFO - FocusClass Launcher shutdown complete
+2025-09-10 00:43:10,376 - src.common.utils - INFO - Starting FocusClass Tkinter Launcher
+2025-09-10 00:43:10,589 - src.common.utils - INFO - Dependency check passed
+2025-09-10 00:43:11,059 - src.common.utils - INFO - FocusClass Launcher initialized successfully
+2025-09-10 00:43:17,809 - src.common.utils - INFO - Launching student application...
+2025-09-10 00:43:18,105 - common.screen_capture - INFO - Detected 1 monitors
+2025-09-10 00:43:18,106 - common.screen_capture - INFO - Monitor 0: 1600x900 at (0, 0)
+2025-09-10 00:43:18,199 - src.common.utils - ERROR - Error launching student app: cannot use geometry manager pack inside . which already has slaves managed by grid
+2025-09-10 00:43:18,208 - src.common.utils - INFO - FocusClass Launcher shutdown complete
+2025-09-10 00:43:47,407 - src.common.utils - INFO - Starting FocusClass Tkinter Launcher
+2025-09-10 00:43:47,630 - src.common.utils - INFO - Dependency check passed
+2025-09-10 00:43:48,109 - src.common.utils - INFO - FocusClass Launcher initialized successfully
+2025-09-10 00:43:50,361 - src.common.utils - INFO - Launching student application...
+2025-09-10 00:43:50,640 - common.screen_capture - INFO - Detected 1 monitors
+2025-09-10 00:43:50,640 - common.screen_capture - INFO - Monitor 0: 1600x900 at (0, 0)
+2025-09-10 00:43:50,674 - common.utils - INFO - Student application initialized
+2025-09-10 00:44:03,074 - src.common.utils - INFO - Starting FocusClass Tkinter Launcher
+2025-09-10 00:44:03,291 - src.common.utils - INFO - Dependency check passed
+2025-09-10 00:44:03,728 - src.common.utils - INFO - FocusClass Launcher initialized successfully
+2025-09-10 00:44:09,974 - src.common.utils - INFO - FocusClass Launcher shutting down
+2025-09-10 00:44:09,992 - src.common.utils - INFO - FocusClass Launcher shutdown complete

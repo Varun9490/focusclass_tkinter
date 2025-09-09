@@ -71,6 +71,7 @@ class StudentApp:
         
         # Configure root for responsiveness
         self.root.grid_rowconfigure(0, weight=1)
+        self.root.grid_rowconfigure(1, weight=0)  # Status bar
         self.root.grid_columnconfigure(0, weight=1)
         
         # Main container with grid layout
@@ -119,12 +120,16 @@ class StudentApp:
                                        bg=TKINTER_THEME["error_color"], fg="white", state=tk.DISABLED)
         self.disconnect_btn.pack(side=tk.LEFT, padx=5)
         
-        # Status panel
-        status_group = tk.LabelFrame(main_frame, text="Status", bg=TKINTER_THEME["bg_color"])
-        status_group.pack(fill=tk.X, pady=(0, 10))
+        # Status panel with improved layout
+        status_group = tk.LabelFrame(main_frame, text="Status", 
+                                    bg=TKINTER_THEME["bg_color"],
+                                    font=(TKINTER_THEME["font_family"], 11, "bold"))
+        status_group.grid(row=1, column=0, sticky="ew", pady=(0, 10))
+        status_group.grid_columnconfigure((1, 3), weight=1)
         
         status_grid = tk.Frame(status_group, bg=TKINTER_THEME["bg_color"])
-        status_grid.pack(padx=10, pady=10)
+        status_grid.grid(row=0, column=0, padx=10, pady=10, sticky="ew")
+        status_group.grid_columnconfigure(0, weight=1)
         
         tk.Label(status_grid, text="Status:", bg=TKINTER_THEME["bg_color"]).grid(row=0, column=0, sticky="w", padx=5, pady=2)
         self.connection_status_var = tk.StringVar(value="Disconnected")
@@ -150,18 +155,25 @@ class StudentApp:
         self.battery_var = tk.StringVar(value="Unknown")
         tk.Label(status_grid, textvariable=self.battery_var, bg=TKINTER_THEME["bg_color"]).grid(row=2, column=1, sticky="w", padx=5)
         
-        # Activity log
-        activity_group = tk.LabelFrame(main_frame, text="Activity Log", bg=TKINTER_THEME["bg_color"])
-        activity_group.pack(fill=tk.BOTH, expand=True)
+        # Activity log with improved layout
+        activity_group = tk.LabelFrame(main_frame, text="Activity Log", 
+                                      bg=TKINTER_THEME["bg_color"],
+                                      font=(TKINTER_THEME["font_family"], 11, "bold"))
+        activity_group.grid(row=2, column=0, sticky="nsew")
         
-        self.activity_text = scrolledtext.ScrolledText(activity_group, height=15, bg="white", font=("Consolas", 9))
-        self.activity_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        self.activity_text = scrolledtext.ScrolledText(activity_group, height=15, 
+                                                      bg="white", 
+                                                      fg=TKINTER_THEME["fg_color"],
+                                                      font=("Consolas", 9))
+        self.activity_text.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
+        activity_group.grid_rowconfigure(0, weight=1)
+        activity_group.grid_columnconfigure(0, weight=1)
         
-        # Status bar
+        # Status bar with grid layout
         self.status_var = tk.StringVar(value="Not connected")
         status_bar = tk.Label(self.root, textvariable=self.status_var, relief=tk.SUNKEN, bd=1,
                              bg=TKINTER_THEME["bg_color"], anchor=tk.W)
-        status_bar.pack(side=tk.BOTTOM, fill=tk.X)
+        status_bar.grid(row=1, column=0, sticky="ew")
         
         center_window(self.root, 900, 700)
     
