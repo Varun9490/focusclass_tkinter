@@ -1,0 +1,6 @@
+2025-09-10 01:08:19,425 - common.screen_capture - INFO - Detected 1 monitors
+2025-09-10 01:08:19,425 - common.screen_capture - INFO - Monitor 0: 1600x900 at (0, 0)
+2025-09-10 01:08:19,807 - common.utils - INFO - Student application initialized
+2025-09-10 01:08:38,020 - common.screen_capture - INFO - Detected 1 monitors
+2025-09-10 01:08:38,022 - common.screen_capture - INFO - Monitor 0: 1600x900 at (0, 0)
+2025-09-10 01:08:38,493 - common.utils - INFO - Student application initialized

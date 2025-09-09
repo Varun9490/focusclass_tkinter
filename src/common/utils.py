@@ -616,6 +616,7 @@ class AsyncTkinterHelper:
         self.running = False
         self.thread = None
         self._cleanup_scheduled = False
+        self._stop_requested = False
     
     def start_async_loop(self):
         """Start async event loop in a separate thread"""
@@ -632,25 +633,35 @@ class AsyncTkinterHelper:
             finally:
                 self.running = False
         
-        self.thread = threading.Thread(target=run_loop, daemon=True)
-        self.thread.start()
-        
-        # Schedule periodic check for async tasks
-        if not self._cleanup_scheduled:
-            self._cleanup_scheduled = True
-            self.root.after(100, self._check_async_tasks)
+        if not self.running and not self._stop_requested:
+            self.thread = threading.Thread(target=run_loop, daemon=True)
+            self.thread.start()
+            
+            # Schedule periodic check for async tasks
+            if not self._cleanup_scheduled:
+                self._cleanup_scheduled = True
+                self._schedule_check()
+    
+    def _schedule_check(self):
+        """Schedule async task check with error handling"""
+        try:
+            if self.root and not self._stop_requested:
+                self.root.after(100, self._check_async_tasks)
+        except (tk.TclError, RuntimeError):
+            # Window destroyed or Tkinter not available
+            self._cleanup_scheduled = False
     
     def _check_async_tasks(self):
         """Check for completed async tasks"""
-        if self.running and self._cleanup_scheduled:
+        if self.running and self._cleanup_scheduled and not self._stop_requested:
             try:
-                self.root.after(100, self._check_async_tasks)
-            except tk.TclError:
-                # Widget has been destroyed, stop checking
+                self._schedule_check()
+            except (tk.TclError, RuntimeError):
+                # Window destroyed or Tkinter not available
                 self._cleanup_scheduled = False
     
     def run_async(self, coro):
-        """Run async coroutine"""
+        """Run an async coroutine"""
         if self.loop and self.running:
             try:
                 asyncio.run_coroutine_threadsafe(coro, self.loop)
@@ -658,18 +669,22 @@ class AsyncTkinterHelper:
                 logging.getLogger(__name__).error(f"Error running async coroutine: {e}")
     
     def stop(self):
-        """Stop async loop"""
-        self.running = False
+        """Stop the async helper"""
+        self._stop_requested = True
         self._cleanup_scheduled = False
         
-        if self.loop:
+        if self.loop and self.running:
             try:
-                self.loop.call_soon_threadsafe(self.loop.stop)
-            except Exception:
-                pass  # Loop might already be stopped
+                # Schedule loop stop in the async thread
+                if self.loop.is_running():
+                    self.loop.call_soon_threadsafe(self.loop.stop)
+                self.running = False
+            except Exception as e:
+                logging.getLogger(__name__).error(f"Error stopping async loop: {e}")
         
+        # Wait for thread to finish with timeout
         if self.thread and self.thread.is_alive():
             try:
-                self.thread.join(timeout=1.0)
-            except Exception:
-                pass  # Thread cleanup failed
+                self.thread.join(timeout=2.0)
+            except Exception as e:
+                logging.getLogger(__name__).error(f"Error joining async thread: {e}")

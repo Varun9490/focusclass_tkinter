@@ -55,3 +55,76 @@
 2025-09-10 00:44:03,728 - src.common.utils - INFO - FocusClass Launcher initialized successfully
 2025-09-10 00:44:09,974 - src.common.utils - INFO - FocusClass Launcher shutting down
 2025-09-10 00:44:09,992 - src.common.utils - INFO - FocusClass Launcher shutdown complete
+2025-09-10 00:51:21,415 - src.common.utils - INFO - Starting FocusClass Tkinter Launcher
+2025-09-10 00:51:21,636 - src.common.utils - INFO - Dependency check passed
+2025-09-10 00:51:22,058 - src.common.utils - INFO - FocusClass Launcher initialized successfully
+2025-09-10 00:51:24,814 - src.common.utils - INFO - FocusClass Launcher shutting down
+2025-09-10 00:51:24,823 - src.common.utils - INFO - FocusClass Launcher shutdown complete
+2025-09-10 00:58:03,909 - src.common.utils - INFO - Starting FocusClass Tkinter Launcher
+2025-09-10 00:58:04,158 - src.common.utils - INFO - Dependency check passed
+2025-09-10 00:58:04,624 - src.common.utils - INFO - FocusClass Launcher initialized successfully
+2025-09-10 01:01:22,280 - src.common.utils - INFO - FocusClass Launcher shutting down
+2025-09-10 01:01:22,299 - src.common.utils - INFO - FocusClass Launcher shutdown complete
+2025-09-10 01:07:46,358 - src.common.utils - INFO - Starting FocusClass Tkinter Launcher
+2025-09-10 01:07:46,669 - src.common.utils - INFO - Dependency check passed
+2025-09-10 01:07:47,125 - src.common.utils - INFO - FocusClass Launcher initialized successfully
+2025-09-10 01:07:50,077 - src.common.utils - INFO - Launching teacher application...
+2025-09-10 01:07:50,372 - common.screen_capture - INFO - Detected 1 monitors
+2025-09-10 01:07:50,372 - common.screen_capture - INFO - Monitor 0: 1600x900 at (0, 0)
+2025-09-10 01:07:50,638 - common.utils - INFO - Teacher application initialized
+2025-09-10 01:07:54,944 - common.database_manager - INFO - Database initialized successfully
+2025-09-10 01:07:54,961 - common.database_manager - INFO - Created session HQOUOMEHRMS with ID 2
+2025-09-10 01:07:54,968 - websockets.server - INFO - server listening on 0.0.0.0:8765
+2025-09-10 01:07:54,968 - common.network_manager - INFO - WebSocket server started on 0.0.0.0:8765
+2025-09-10 01:07:54,968 - common.network_manager - INFO - HTTP server started on 0.0.0.0:8080
+2025-09-10 01:07:54,971 - common.network_manager - WARNING - Zeroconf not available. Network discovery disabled.
+2025-09-10 01:07:54,971 - common.network_manager - INFO - Teacher server started: {'session_code': 'HQOUOMEHRMS', 'password': '2De3sNn6etdwT6m0', 'ip': '172.168.20.113', 'websocket_port': 8765, 'http_port': 8080, 'discovery_name': 'FocusClass-HQOUOMEHRMS'}
+2025-09-10 01:07:54,971 - common.utils - INFO - Session started: HQOUOMEHRMS
+2025-09-10 01:07:54,981 - asyncio - ERROR - Task was destroyed but it is pending!
+task: <Task pending name='Task-3' coro=<IocpProactor.accept.<locals>.accept_coro() running at C:\Python312\Lib\asyncio\windows_events.py:566> wait_for=<_OverlappedFuture cancelled>>
+2025-09-10 01:07:54,981 - asyncio - ERROR - Task was destroyed but it is pending!
+task: <Task pending name='Task-5' coro=<IocpProactor.accept.<locals>.accept_coro() running at C:\Python312\Lib\asyncio\windows_events.py:566> wait_for=<_OverlappedFuture cancelled>>
+2025-09-10 01:07:54,987 - common.utils - ERROR - Failed to generate QR code: image "pyimage1" doesn't exist
+2025-09-10 01:09:23,883 - src.common.utils - INFO - Starting FocusClass Tkinter Launcher
+2025-09-10 01:09:24,139 - src.common.utils - INFO - Dependency check passed
+2025-09-10 01:09:24,635 - src.common.utils - INFO - FocusClass Launcher initialized successfully
+2025-09-10 01:09:25,867 - src.common.utils - INFO - Launching teacher application...
+2025-09-10 01:09:26,146 - common.screen_capture - INFO - Detected 1 monitors
+2025-09-10 01:09:26,146 - common.screen_capture - INFO - Monitor 0: 1600x900 at (0, 0)
+2025-09-10 01:09:26,374 - common.utils - INFO - Teacher application initialized
+2025-09-10 01:09:28,058 - common.database_manager - INFO - Database initialized successfully
+2025-09-10 01:09:28,071 - common.database_manager - INFO - Created session PQYNDIYP0AM with ID 3
+2025-09-10 01:09:28,073 - common.network_manager - INFO - Found available port: 8766 (original: 8765)
+2025-09-10 01:09:28,073 - common.network_manager - INFO - Found available port: 8081 (original: 8080)
+2025-09-10 01:09:28,073 - websockets.server - INFO - server listening on 0.0.0.0:8766
+2025-09-10 01:09:28,073 - common.network_manager - INFO - WebSocket server started on 0.0.0.0:8766
+2025-09-10 01:09:28,073 - common.network_manager - INFO - HTTP server started on 0.0.0.0:8081
+2025-09-10 01:09:28,080 - common.network_manager - WARNING - Zeroconf not available. Network discovery disabled.
+2025-09-10 01:09:28,080 - common.network_manager - INFO - Teacher server started: {'session_code': 'PQYNDIYP0AM', 'password': '2DcJw9DmvnuR5R6S', 'ip': '172.168.20.113', 'websocket_port': 8766, 'http_port': 8081, 'discovery_name': 'FocusClass-PQYNDIYP0AM'}
+2025-09-10 01:09:28,080 - common.utils - INFO - Session started: PQYNDIYP0AM
+2025-09-10 01:09:28,090 - asyncio - ERROR - Task was destroyed but it is pending!
+task: <Task pending name='Task-3' coro=<IocpProactor.accept.<locals>.accept_coro() running at C:\Python312\Lib\asyncio\windows_events.py:566> wait_for=<_OverlappedFuture cancelled>>
+2025-09-10 01:09:28,090 - asyncio - ERROR - Task was destroyed but it is pending!
+task: <Task pending name='Task-5' coro=<IocpProactor.accept.<locals>.accept_coro() running at C:\Python312\Lib\asyncio\windows_events.py:566> wait_for=<_OverlappedFuture cancelled>>
+2025-09-10 01:09:28,090 - common.utils - ERROR - Failed to generate QR code: image "pyimage1" doesn't exist
+2025-09-10 01:10:57,579 - src.common.utils - INFO - FocusClass Launcher shutdown complete
+2025-09-10 01:11:31,093 - src.common.utils - INFO - Starting FocusClass Tkinter Launcher
+2025-09-10 01:11:31,438 - src.common.utils - INFO - Dependency check passed
+2025-09-10 01:11:31,908 - src.common.utils - INFO - FocusClass Launcher initialized successfully
+2025-09-10 01:11:34,165 - src.common.utils - INFO - Launching teacher application...
+2025-09-10 01:11:34,458 - common.screen_capture - INFO - Detected 1 monitors
+2025-09-10 01:11:34,458 - common.screen_capture - INFO - Monitor 0: 1600x900 at (0, 0)
+2025-09-10 01:11:34,731 - common.utils - INFO - Teacher application initialized
+2025-09-10 01:11:36,448 - common.database_manager - INFO - Database initialized successfully
+2025-09-10 01:11:36,455 - common.database_manager - INFO - Created session KQPA6JC0T08 with ID 4
+2025-09-10 01:11:36,455 - websockets.server - INFO - server listening on 0.0.0.0:8765
+2025-09-10 01:11:36,455 - common.network_manager - INFO - WebSocket server started on 0.0.0.0:8765
+2025-09-10 01:11:36,464 - common.network_manager - INFO - HTTP server started on 0.0.0.0:8080
+2025-09-10 01:11:36,464 - common.network_manager - WARNING - Zeroconf not available. Network discovery disabled.
+2025-09-10 01:11:36,464 - common.network_manager - INFO - Teacher server started: {'session_code': 'KQPA6JC0T08', 'password': 'xb50frP25lfPi8Hv', 'ip': '172.168.20.113', 'websocket_port': 8765, 'http_port': 8080, 'discovery_name': 'FocusClass-KQPA6JC0T08'}
+2025-09-10 01:11:36,464 - common.utils - INFO - Session started: KQPA6JC0T08
+2025-09-10 01:11:36,474 - asyncio - ERROR - Task was destroyed but it is pending!
+task: <Task pending name='Task-3' coro=<IocpProactor.accept.<locals>.accept_coro() running at C:\Python312\Lib\asyncio\windows_events.py:566> wait_for=<_OverlappedFuture cancelled>>
+2025-09-10 01:11:36,474 - asyncio - ERROR - Task was destroyed but it is pending!
+task: <Task pending name='Task-5' coro=<IocpProactor.accept.<locals>.accept_coro() running at C:\Python312\Lib\asyncio\windows_events.py:566> wait_for=<_OverlappedFuture cancelled>>
+2025-09-10 01:11:36,474 - common.utils - ERROR - Failed to generate QR code: image "pyimage1" doesn't exist

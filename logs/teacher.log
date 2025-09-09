@@ -1,0 +1,29 @@
+2025-09-10 01:07:56,509 - common.screen_capture - INFO - Detected 1 monitors
+2025-09-10 01:07:56,509 - common.screen_capture - INFO - Monitor 0: 1600x900 at (0, 0)
+2025-09-10 01:07:57,225 - common.utils - INFO - Teacher application initialized
+2025-09-10 01:12:37,171 - common.screen_capture - INFO - Detected 1 monitors
+2025-09-10 01:12:37,171 - common.screen_capture - INFO - Monitor 0: 1600x900 at (0, 0)
+2025-09-10 01:12:37,806 - common.utils - INFO - Teacher application initialized
+2025-09-10 01:12:43,912 - common.database_manager - INFO - Database initialized successfully
+2025-09-10 01:12:43,927 - common.database_manager - INFO - Created session LULLDEHRXXQ with ID 5
+2025-09-10 01:12:43,927 - common.network_manager - INFO - Found available port: 8766 (original: 8765)
+2025-09-10 01:12:43,927 - common.network_manager - INFO - Found available port: 8081 (original: 8080)
+2025-09-10 01:12:43,927 - websockets.server - INFO - server listening on 0.0.0.0:8766
+2025-09-10 01:12:43,927 - common.network_manager - INFO - WebSocket server started on 0.0.0.0:8766
+2025-09-10 01:12:43,940 - common.network_manager - INFO - HTTP server started on 0.0.0.0:8081
+2025-09-10 01:12:43,940 - common.network_manager - WARNING - Zeroconf not available. Network discovery disabled.
+2025-09-10 01:12:43,940 - common.network_manager - INFO - Teacher server started: {'session_code': 'LULLDEHRXXQ', 'password': 'Mok5_iedd35L7T81', 'ip': '172.168.20.113', 'websocket_port': 8766, 'http_port': 8081, 'discovery_name': 'FocusClass-LULLDEHRXXQ'}
+2025-09-10 01:12:43,940 - common.utils - INFO - Session started: LULLDEHRXXQ
+2025-09-10 01:12:43,940 - asyncio - ERROR - Task was destroyed but it is pending!
+task: <Task pending name='Task-3' coro=<IocpProactor.accept.<locals>.accept_coro() running at C:\Python312\Lib\asyncio\windows_events.py:566> wait_for=<_OverlappedFuture cancelled>>
+2025-09-10 01:12:43,940 - asyncio - ERROR - Task was destroyed but it is pending!
+task: <Task pending name='Task-5' coro=<IocpProactor.accept.<locals>.accept_coro() running at C:\Python312\Lib\asyncio\windows_events.py:566> wait_for=<_OverlappedFuture cancelled>>
+2025-09-10 01:12:44,070 - common.utils - INFO - QR code generated successfully
+2025-09-10 01:12:56,923 - common.screen_capture - INFO - Detected 1 monitors
+2025-09-10 01:12:56,923 - common.screen_capture - INFO - Monitor 0: 1600x900 at (0, 0)
+2025-09-10 01:12:57,584 - common.utils - INFO - Teacher application initialized
+2025-09-10 01:13:08,852 - common.database_manager - INFO - Ended session 5
+2025-09-10 01:13:08,853 - common.network_manager - ERROR - Error stopping server: Event loop is closed
+2025-09-10 01:13:08,877 - common.utils - INFO - Session ended successfully
+2025-09-10 01:13:08,986 - common.utils - INFO - Teacher application cleanup completed
+2025-09-10 01:13:13,260 - common.utils - INFO - Teacher application cleanup completed

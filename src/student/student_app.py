@@ -33,10 +33,6 @@ class StudentApp:
         self.root = root
         self.logger = setup_logging("INFO", "logs/student.log")
         
-        # Initialize async helper
-        self.async_helper = AsyncTkinterHelper(root)
-        self.async_helper.start_async_loop()
-        
         # Initialize components
         self.network_manager = NetworkManager(is_teacher=False)
         
@@ -202,9 +198,14 @@ class StudentApp:
                         
                         # Check for low battery violation
                         if percent < 20 and not battery.power_plugged and self.connected:
-                            threading.Thread(target=lambda: self.async_helper.run_async(
-                                self._send_violation("low_battery", f"Low battery: {percent}% (not charging)")
-                            ), daemon=True).start()
+                            def run_async_task():
+                                try:
+                                    loop = asyncio.new_event_loop()
+                                    asyncio.set_event_loop(loop)
+                                    loop.run_until_complete(self._send_violation("low_battery", f"Low battery: {percent}% (not charging)"))
+                                finally:
+                                    loop.close()
+                            threading.Thread(target=run_async_task, daemon=True).start()
                     else:
                         self.battery_var.set("No battery")
                 except:
@@ -229,9 +230,21 @@ class StudentApp:
             return
         
         self.student_name = student_name
-        threading.Thread(target=lambda: self.async_helper.run_async(
-            self._connect_async(teacher_ip, session_code, password, student_name)
-        ), daemon=True).start()
+        def run_async_task():
+            error_message = None
+            try:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                loop.run_until_complete(self._connect_async(teacher_ip, session_code, password, student_name))
+            except Exception as e:
+                error_message = str(e)
+                self.logger.error(f"Error in connection task: {e}")
+            finally:
+                loop.close()
+                if error_message:
+                    self.root.after(0, lambda msg=error_message: show_error_message("Connection Error", f"Failed to connect: {msg}"))
+        
+        threading.Thread(target=run_async_task, daemon=True).start()
     
     async def _connect_async(self, teacher_ip: str, session_code: str, password: str, student_name: str):
         """Async connection to teacher"""
@@ -252,7 +265,17 @@ class StudentApp:
     def disconnect_from_teacher(self):
         """Disconnect from teacher"""
         if ask_yes_no("Confirm", "Disconnect from the session?"):
-            threading.Thread(target=lambda: self.async_helper.run_async(self._disconnect_async()), daemon=True).start()
+            def run_async_task():
+                try:
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                    loop.run_until_complete(self._disconnect_async())
+                except Exception as e:
+                    self.logger.error(f"Error in disconnection task: {e}")
+                finally:
+                    loop.close()
+            
+            threading.Thread(target=run_async_task, daemon=True).start()
     
     async def _disconnect_async(self):
         """Async disconnection"""
@@ -388,8 +411,20 @@ class StudentApp:
     
     def run(self):
         """Run the application"""
-        self.root.mainloop()
-        self.async_helper.stop()
+        try:
+            self.root.mainloop()
+        except Exception as e:
+            self.logger.error(f"Error in student app main loop: {e}")
+        finally:
+            # Clean shutdown
+            try:
+                if self.connected:
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                    loop.run_until_complete(self._disconnect_async())
+                    loop.close()
+            except Exception as cleanup_error:
+                self.logger.error(f"Error during cleanup: {cleanup_error}")
 
 
 def main():

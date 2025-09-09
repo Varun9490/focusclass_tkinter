@@ -139,6 +139,23 @@ class NetworkManager:
             }
         return {'client_id': client_id, 'ip_address': 'unknown', 'connected_at': 0, 'connected_duration': 0}
     
+    def _is_port_available(self, port: int) -> bool:
+        """Check if a port is available"""
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.bind(('', port))
+                return True
+        except socket.error:
+            return False
+    
+    def _find_available_port(self, start_port: int, max_attempts: int = 100) -> Optional[int]:
+        """Find an available port starting from start_port"""
+        for port in range(start_port, start_port + max_attempts):
+            if self._is_port_available(port):
+                self.logger.info(f"Found available port: {port} (original: {start_port})")
+                return port
+        return None
+    
     # Teacher Server Methods
     async def start_teacher_server(self, session_code: str, password: str) -> Dict[str, Any]:
         """
@@ -156,6 +173,17 @@ class NetworkManager:
         
         self.session_code = session_code
         self.session_password = password
+        
+        # Check if ports are available and find alternatives if needed
+        if not self._is_port_available(self.websocket_port):
+            self.websocket_port = self._find_available_port(self.websocket_port)
+            if not self.websocket_port:
+                raise Exception("No available ports found for WebSocket server")
+        
+        if not self._is_port_available(self.http_port):
+            self.http_port = self._find_available_port(self.http_port)
+            if not self.http_port:
+                raise Exception("No available ports found for HTTP server")
         
         # Start WebSocket server
         await self._start_websocket_server()
@@ -743,25 +771,56 @@ class NetworkManager:
             return
         
         try:
+            # Close all WebSocket connections first
+            disconnect_tasks = []
+            for client_id, connection_info in list(self.connections.items()):
+                websocket = connection_info.get('websocket')
+                if websocket:
+                    try:
+                        await websocket.close()
+                    except Exception as e:
+                        self.logger.warning(f"Error closing WebSocket for {client_id}: {e}")
+            
+            # Clear connections
+            self.connections.clear()
+            
             # Close all peer connections
             for pc in self.peer_connections.values():
-                await pc.close()
+                try:
+                    await pc.close()
+                except Exception as e:
+                    self.logger.warning(f"Error closing peer connection: {e}")
+            self.peer_connections.clear()
+            self.data_channels.clear()
             
             # Close WebSocket server
             if self.websocket_server:
                 self.websocket_server.close()
-                await self.websocket_server.wait_closed()
+                try:
+                    await self.websocket_server.wait_closed()
+                except Exception as e:
+                    self.logger.warning(f"Error waiting for WebSocket server closure: {e}")
+                self.websocket_server = None
             
             # Stop HTTP server
             if self.http_server:
-                await self.http_server.cleanup()
+                try:
+                    await self.http_server.cleanup()
+                except Exception as e:
+                    self.logger.warning(f"Error stopping HTTP server: {e}")
+                self.http_server = None
             
             # Unregister service
             if ZEROCONF_AVAILABLE and self.zeroconf and self.service_info:
-                self.zeroconf.unregister_service(self.service_info)
-                self.zeroconf.close()
+                try:
+                    self.zeroconf.unregister_service(self.service_info)
+                    self.zeroconf.close()
+                except Exception as e:
+                    self.logger.warning(f"Error unregistering service: {e}")
+                self.zeroconf = None
+                self.service_info = None
             
-            self.logger.info("Teacher server stopped")
+            self.logger.info("Teacher server stopped successfully")
             
         except Exception as e:
             self.logger.error(f"Error stopping server: {e}")
